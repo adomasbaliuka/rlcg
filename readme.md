@@ -4,6 +4,8 @@ Reversible Linear Congruential Generator
 A header-only implementation of a pseudorandom number generator 
 which supports generating random numbers in two directions.
 
+Modification (AB): allow arbitrary period to be used (when other parameters chosen correctly).
+
 What do you mean reversible?
 ----------------------------
 
