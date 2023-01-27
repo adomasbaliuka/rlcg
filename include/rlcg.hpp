@@ -51,7 +51,6 @@ function extended_gcd(a, b)
     return (t, s - q * t)
 This assumes a "divide" procedure exists that returns a (quotient,remainder) pair (one could alternatively put q := a div b, and then r = a − b * q).
 */
-
 constexpr std::tuple<uint64_t, uint64_t> extendedEuclid(uint64_t a, uint64_t b) {
     if (b == 0) {
         return std::make_tuple(1, 0);
@@ -64,27 +63,37 @@ constexpr std::tuple<uint64_t, uint64_t> extendedEuclid(uint64_t a, uint64_t b) 
     }
 }
 
+template <typename T>
+constexpr inline T positive_modulo(T i, T n) {
+    return (i % n + n) % n;
+}
+
 //modulus M, multiplicand A, increment C, least significant bits to discard D
 template<uint64_t M = 1ull<<63ul, uint64_t A = 6364136223846793005, uint64_t C = 1442695040888963407, uint64_t D = 32>
 class ReversibleLCG {
     static_assert(isPowerOfTwo(M), "M is not a power of two as it should be");
     uint64_t x;
 public:
-    ReversibleLCG(unsigned int seed) : x(seed){}
+    explicit ReversibleLCG(unsigned int seed) : x(seed){}
+
     // Hi 32-bits is the initial value, lo 32-bit is a random seed
     void set_state(uint64_t s) { x = s; }
+
     unsigned int next() {
         //nextx = (a * x + c) % m;
         x = (A * x + C) & (M - 1);
         return x >> D;
     }
+
     unsigned int prev() {
         constexpr uint64_t ainverse = std::get<0>(extendedEuclid(A, M));
         //prevx = (ainverse * (x - c)) mod m
         x = ainverse * (x - C) & (M - 1);
         return x >> D;
     }
-    unsigned int max() const {
+
+    [[nodiscard]]
+    constexpr unsigned int max() const {
         return (M - 1) >> D;
     }
 };
