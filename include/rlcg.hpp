@@ -63,6 +63,7 @@ constexpr std::tuple<uint64_t, uint64_t> extendedEuclid(uint64_t a, uint64_t b) 
     }
 }
 
+
 template <typename T>
 constexpr inline T positive_modulo(T i, T n) {
     return (i % n + n) % n;
@@ -71,24 +72,33 @@ constexpr inline T positive_modulo(T i, T n) {
 //modulus M, multiplicand A, increment C, least significant bits to discard D
 template<uint64_t M = 1ull<<63ul, uint64_t A = 6364136223846793005, uint64_t C = 1442695040888963407, uint64_t D = 32>
 class ReversibleLCG {
-    static_assert(isPowerOfTwo(M), "M is not a power of two as it should be");
+     static_assert(isPowerOfTwo(M) || D == 0,
+             "M is not a power of two as it should be. I only tested behaviour for non-prime M when D = 0.");
     uint64_t x;
 public:
     explicit ReversibleLCG(unsigned int seed) : x(seed){}
-
     // Hi 32-bits is the initial value, lo 32-bit is a random seed
     void set_state(uint64_t s) { x = s; }
 
     unsigned int next() {
-        //nextx = (a * x + c) % m;
-        x = (A * x + C) & (M - 1);
+        if constexpr (isPowerOfTwo(M)) {
+            x = (A * x + C) & (M - 1);
+        } else {
+            x = (A * x + C) % M;
+        }
         return x >> D;
     }
 
     unsigned int prev() {
         constexpr uint64_t ainverse = std::get<0>(extendedEuclid(A, M));
-        //prevx = (ainverse * (x - c)) mod m
-        x = ainverse * (x - C) & (M - 1);
+        if constexpr (isPowerOfTwo(M)) {
+            x = ainverse * (x - C) & (M - 1);
+        } else {
+            constexpr auto minus_C_modM = positive_modulo(
+                    -static_cast<long long>(C) , static_cast<long long>(M));
+            x = ainverse * (x + minus_C_modM) % M;
+        }
+
         return x >> D;
     }
 
@@ -97,7 +107,6 @@ public:
         return (M - 1) >> D;
     }
 };
-
 } // end namespace details
 
 using ReversibleLCG = details::ReversibleLCG<>;
